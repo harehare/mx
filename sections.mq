@@ -1,0 +1,38 @@
+# Extracts sections from markdown
+# Returns an array where each element is a dict with:
+# - title: the heading text
+# - level: the heading level (1-6)
+# - content: array of markdown nodes in that section (including the heading)
+
+def extract_sections(md_nodes, level):
+  let section_list = sections(md_nodes, level)
+  | map(section_list, fn(section):
+    let heading = first(section)
+    | let title = to_text(heading)
+    | {"title": title, "level": level, "content": section}
+  end)
+end
+
+# Extracts code blocks from a section
+def extract_code_blocks(section_content):
+  let code_blocks = filter(section_content, is_code)
+  | map(code_blocks, fn(code):
+    let lang = attr(code, "lang")
+    | let text = to_text(code)
+    | let lang_pair = ["lang", lang]
+    | let code_pair = ["code", text]
+    | let pairs = [lang_pair, code_pair]
+    | dict(pairs);)
+end
+
+# Main query to extract sections with their code blocks
+def sections_with_code(md_nodes, level):
+  let section_list = extract_sections(md_nodes, level)
+  | map(section_list, fn(section):
+    let title = get(section, "title")
+    | let lvl = get(section, "level")
+    | let content = get(section, "content")
+    | let codes = extract_code_blocks(content)
+    | {"title": title, "level": lvl, "codes": codes}
+  end)
+end
