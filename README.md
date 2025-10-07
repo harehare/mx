@@ -16,8 +16,10 @@ It is implemented using [mq](https://github.com/harehare/mq), a jq-like command-
 
 ## Installation
 
-```bash
-cargo install --path crates/mx
+### Cargo
+
+```sh
+$ cargo install --git https://github.com/harehare/mx.git
 ```
 
 ## Usage
