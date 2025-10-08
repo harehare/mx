@@ -99,58 +99,6 @@ mx run Build
 mx run --file tasks.md Build
 ```
 
-## Example
-
----
-
-## Bash
-
-```bash
-echo "Hello, world!"
-```
-
-## Python
-
-```python
-print("Hello, world!")
-```
-
-## Ruby
-
-```ruby
-puts "Hello, world!"
-```
-
-## JavaScript
-
-```javascript
-console.log("Hello, world!");
-```
-
-## Go
-
-```go
-package main
-import "fmt"
-func main() {
-    fmt.Println("Hello, world!")
-}
-```
-
-## Rust
-
-```rust
-fn main() {
-    println!("Hello, world!");
-}
-```
-
-## mq
-
-```mq
-print("Hello, world!")
-```
-
 ## License
 
 MIT
