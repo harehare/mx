@@ -22,6 +22,17 @@ It is implemented using [mq](https://github.com/harehare/mq), a jq-like command-
 
 ## Installation
 
+### Quick Install
+
+```bash
+curl -sSL  https://raw.githubusercontent.com/harehare/mx/refs/heads/main/bin/install.sh | bash
+```
+
+The installer will:
+- Download the latest mq binary for your platform
+- Install it to `~/.mx/bin/`
+- Update your shell profile to add mq to your PATH
+
 ### Cargo
 
 ```sh
