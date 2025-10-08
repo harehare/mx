@@ -71,8 +71,6 @@ fn default_runtimes() -> HashMap<String, String> {
     runtimes.insert("node".to_string(), "node".to_string());
     runtimes.insert("javascript".to_string(), "node".to_string());
     runtimes.insert("js".to_string(), "node".to_string());
-    runtimes.insert("rust".to_string(), "rust-script".to_string());
-    runtimes.insert("rs".to_string(), "rust-script".to_string());
     runtimes.insert("go".to_string(), "go run".to_string());
     runtimes.insert("golang".to_string(), "go run".to_string());
     runtimes.insert("php".to_string(), "php".to_string());

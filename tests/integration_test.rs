@@ -28,8 +28,8 @@ print("world")
     let tasks = runner.list_tasks(&test_file).unwrap();
 
     assert_eq!(tasks.len(), 2);
-    assert_eq!(tasks[0], "Task 1");
-    assert_eq!(tasks[1], "Task 2");
+    assert_eq!(tasks[0], "Task 1: ");
+    assert_eq!(tasks[1], "Task 2: ");
 
     fs::remove_file(test_file).unwrap();
 }

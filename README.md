@@ -1,7 +1,13 @@
-# mx - Markdown Task Runner
+<h1 align="center">mx</h1>
+
+Markdown Task Runner
+
+[![ci](https://github.com/harehare/mx/actions/workflows/ci.yml/badge.svg)](https://github.com/harehare/mx/actions/workflows/ci.yml)
 
 `mx` is a task runner that executes code blocks in Markdown files based on section titles.
 It is implemented using [mq](https://github.com/harehare/mq), a jq-like command-line tool for Markdown processing, to parse and extract sections from Markdown documents.
+
+![demo](assets/demo.gif)
 
 > [!WARNING]
 > `mx` is currently under active development.
@@ -76,7 +82,6 @@ ruby = "ruby"
 node = "node"
 javascript = "node"
 js = "node"
-rust = "rust-script"
 go = "go run"
 php = "php"
 perl = "perl"
@@ -96,6 +101,8 @@ mx run --file tasks.md Build
 
 ## Example
 
+---
+
 ## Bash
 
 ```bash
@@ -114,7 +121,7 @@ print("Hello, world!")
 puts "Hello, world!"
 ```
 
-## JavaScript (Node.js)
+## JavaScript
 
 ```javascript
 console.log("Hello, world!");
