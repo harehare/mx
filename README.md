@@ -76,39 +76,11 @@ ruby = "ruby"
 node = "node"
 javascript = "node"
 js = "node"
-rust = "rustc"
+rust = "rust-script"
 go = "go run"
 php = "php"
 perl = "perl"
 ```
-
-## Example
-
-Create a `tasks.md` file:
-
-```markdown
-# My Project Tasks
-
-## Build
-
-```bash
-cargo build --release
-```
-
-## Test
-
-```bash
-cargo test
-```
-
-## Deploy
-
-```bash
-./deploy.sh
-```
-```
-
-Run a specific task:
 
 ```bash
 # Using shorthand (from tasks.md by default)
@@ -120,6 +92,56 @@ mx -f tasks.md Build
 # Using explicit run command
 mx run Build
 mx run --file tasks.md Build
+```
+
+## Example
+
+## Bash
+
+```bash
+echo "Hello, world!"
+```
+
+## Python
+
+```python
+print("Hello, world!")
+```
+
+## Ruby
+
+```ruby
+puts "Hello, world!"
+```
+
+## JavaScript (Node.js)
+
+```javascript
+console.log("Hello, world!");
+```
+
+## Go
+
+```go
+package main
+import "fmt"
+func main() {
+    fmt.Println("Hello, world!")
+}
+```
+
+## Rust
+
+```rust
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+## mq
+
+```mq
+print("Hello, world!")
 ```
 
 ## License

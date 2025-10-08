@@ -19,10 +19,15 @@ def extract_code_blocks(section_content):
   | map(code_blocks, fn(code):
     let lang = attr(code, "lang")
     | let text = to_text(code)
-    | let lang_pair = ["lang", lang]
-    | let code_pair = ["code", text]
-    | let pairs = [lang_pair, code_pair]
-    | dict(pairs);)
+    | {"lang": lang, "code": text}
+  end)
+end
+
+# Extracts text from a section
+def extract_description(section_content):
+  filter(section_content, is_text)
+  | first()
+  | if (is_none()): None else: to_text()
 end
 
 # Main query to extract sections with their code blocks
@@ -33,6 +38,7 @@ def sections_with_code(md_nodes, level):
     | let lvl = get(section, "level")
     | let content = get(section, "content")
     | let codes = extract_code_blocks(content)
-    | {"title": title, "level": lvl, "codes": codes}
+    | let description = extract_description(content)
+    | {"title": title, "level": lvl, "codes": codes, "description": description}
   end)
 end

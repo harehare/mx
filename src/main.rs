@@ -1,6 +1,7 @@
 //! mx - Markdown-based task runner CLI
 
 use clap::{Parser, Subcommand};
+use colored::*;
 use miette::{IntoDiagnostic, Result};
 use std::path::PathBuf;
 
@@ -147,17 +148,41 @@ fn list_tasks(
 
     let mut runner = Runner::new(config);
 
-    let tasks = runner.list_tasks(&markdown_path).into_diagnostic()?;
+    let sections = runner.list_task_sections(&markdown_path).into_diagnostic()?;
 
-    if tasks.is_empty() {
-        println!("No tasks found in {}", markdown_path.display());
+    if sections.is_empty() {
+        println!(
+            "{}",
+            format!("No tasks found in {}", markdown_path.display()).yellow()
+        );
         return Ok(());
     }
 
-    println!("Available tasks in {}:", markdown_path.display());
-    for task in tasks {
-        println!("  - {}", task);
+    let mut output = String::new();
+    output.push_str(&format!(
+        "{} {}\n\n",
+        "Available tasks in".bold(),
+        markdown_path.display().to_string().cyan()
+    ));
+
+    for section in sections {
+        if let Some(desc) = section.description {
+            let trimmed = desc.trim();
+            if !trimmed.is_empty() {
+                output.push_str(&format!(
+                    "  {} {}\n",
+                    section.title.green().bold(),
+                    format!("- {}", trimmed).bright_black()
+                ));
+            } else {
+                output.push_str(&format!("  {}\n", section.title.green().bold()));
+            }
+        } else {
+            output.push_str(&format!("  {}\n", section.title.green().bold()));
+        }
     }
+
+    print!("{}", output);
 
     Ok(())
 }
