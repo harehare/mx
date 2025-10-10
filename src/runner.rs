@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 use mq_lang::{parse_markdown_input, Engine, Ident, RuntimeValue};
 use serde::{Deserialize, Serialize};
 
-use crate::config::Config;
+use crate::config::{Config, ExecutionMode};
 use crate::error::{Error, Result};
 
 const SECTIONS_QUERY: &str = include_str!("../sections.mq");
@@ -187,22 +187,14 @@ impl Runner {
             return Err(Error::RuntimeNotFound(lang.to_string()));
         }
 
-        // Check if this language requires file-based execution
-        if self.requires_file_execution(lang) {
-            self.execute_code_with_file(lang, code, &parts)
-        } else if self.requires_command_arg_lang(lang) {
-            self.execute_code_with_args(code, &parts)
-        } else {
-            self.execute_code_with_stdin(code, &parts)
+        // Get execution mode from config
+        let execution_mode = self.config.get_execution_mode(lang);
+
+        match execution_mode {
+            ExecutionMode::File => self.execute_code_with_file(lang, code, &parts),
+            ExecutionMode::Arg => self.execute_code_with_args(code, &parts),
+            ExecutionMode::Stdin => self.execute_code_with_stdin(code, &parts),
         }
-    }
-
-    fn requires_file_execution(&self, lang: &str) -> bool {
-        matches!(lang, "go" | "golang")
-    }
-
-    fn requires_command_arg_lang(&self, lang: &str) -> bool {
-        matches!(lang, "mq")
     }
 
     fn execute_code_with_stdin(&self, code: &str, parts: &[&str]) -> Result<()> {

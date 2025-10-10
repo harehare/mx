@@ -25,7 +25,7 @@ It is implemented using [mq](https://github.com/harehare/mq), a jq-like command-
 ### Quick Install
 
 ```bash
-curl -sSL  https://raw.githubusercontent.com/harehare/mx/refs/heads/main/bin/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/harehare/mx/refs/heads/main/bin/install.sh | bash
 ```
 
 The installer will:
@@ -85,6 +85,9 @@ Create an `mx.toml` file to customize runtime behavior:
 # Heading level for sections (default: 2, i.e., ## headings)
 heading_level = 2
 
+# Runtimes configuration
+# Simple format: language = "command"
+# The execution mode defaults to "stdin"
 [runtimes]
 bash = "bash"
 sh = "sh"
@@ -93,9 +96,38 @@ ruby = "ruby"
 node = "node"
 javascript = "node"
 js = "node"
-go = "go run"
 php = "php"
 perl = "perl"
+jq = "jq"
+
+# Detailed format with execution mode
+# Execution modes: "stdin" (default), "file", or "arg"
+# - stdin: Pass code via standard input
+# - file: Write code to a temporary file and pass it as an argument
+# - arg: Pass code as a command-line argument
+
+[runtimes.go]
+command = "go run"
+execution_mode = "file"  # Go requires file-based execution
+
+[runtimes.golang]
+command = "go run"
+execution_mode = "file"
+
+[runtimes.mq]
+command = "mq"
+execution_mode = "arg"  # mq uses query as argument
+```
+
+You can also mix both formats:
+
+```toml
+[runtimes]
+python = "python3"  # Simple format, uses default stdin mode
+
+[runtimes.go]       # Detailed format with custom execution mode
+command = "go run"
+execution_mode = "file"
 ```
 
 ```bash

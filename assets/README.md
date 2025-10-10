@@ -48,6 +48,12 @@ fn main() {
 }
 ```
 
+## Perl
+
+```perl
+print "Hello, world!\n";
+```
+
 ## mq
 
 ```mq

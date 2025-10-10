@@ -7,6 +7,6 @@ pub mod config;
 pub mod error;
 pub mod runner;
 
-pub use config::Config;
+pub use config::{Config, ExecutionMode};
 pub use error::{Error, Result};
 pub use runner::Runner;

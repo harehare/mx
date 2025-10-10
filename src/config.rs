@@ -7,12 +7,62 @@ use std::path::Path;
 
 use crate::error::{Error, Result};
 
+/// Execution mode for a runtime
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ExecutionMode {
+    /// Pass code via stdin
+    Stdin,
+    /// Write code to a temporary file and pass it as argument
+    File,
+    /// Pass code as a command argument
+    Arg,
+}
+
+impl Default for ExecutionMode {
+    fn default() -> Self {
+        Self::Stdin
+    }
+}
+
+/// Runtime configuration that can be either a simple string or a detailed config
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum RuntimeConfig {
+    /// Simple command string (execution_mode defaults to stdin)
+    Simple(String),
+    /// Detailed configuration with command and execution mode
+    Detailed {
+        command: String,
+        #[serde(default)]
+        execution_mode: ExecutionMode,
+    },
+}
+
+impl RuntimeConfig {
+    /// Get the command string from the runtime config
+    pub fn command(&self) -> &str {
+        match self {
+            RuntimeConfig::Simple(cmd) => cmd,
+            RuntimeConfig::Detailed { command, .. } => command,
+        }
+    }
+
+    /// Get the execution mode from the runtime config
+    pub fn execution_mode(&self) -> ExecutionMode {
+        match self {
+            RuntimeConfig::Simple(_) => ExecutionMode::default(),
+            RuntimeConfig::Detailed { execution_mode, .. } => execution_mode.clone(),
+        }
+    }
+}
+
 /// Configuration for mx task runner
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// Runtime mappings: language -> command
+    /// Runtime mappings: language -> command or detailed config
     #[serde(default = "default_runtimes")]
-    pub runtimes: HashMap<String, String>,
+    pub runtimes: HashMap<String, RuntimeConfig>,
 
     /// Heading level for sections (default: 2)
     #[serde(default = "default_heading_level")]
@@ -38,7 +88,15 @@ impl Config {
 
     /// Get runtime command for a language
     pub fn get_runtime(&self, lang: &str) -> Option<&str> {
-        self.runtimes.get(lang).map(|s| s.as_str())
+        self.runtimes.get(lang).map(|config| config.command())
+    }
+
+    /// Get execution mode for a language
+    pub fn get_execution_mode(&self, lang: &str) -> ExecutionMode {
+        self.runtimes
+            .get(lang)
+            .map(|config| config.execution_mode())
+            .unwrap_or_default()
     }
 
     /// Check if runtime exists for a language
@@ -48,7 +106,8 @@ impl Config {
 
     /// Validate that all configured runtimes are available in PATH
     pub fn validate_runtimes(&self) -> Result<()> {
-        for (lang, cmd) in &self.runtimes {
+        for (lang, config) in &self.runtimes {
+            let cmd = config.command();
             let binary = cmd.split_whitespace().next().unwrap_or(cmd);
             if which::which(binary).is_err() {
                 return Err(Error::Config(format!(
@@ -62,21 +121,37 @@ impl Config {
 }
 
 /// Default runtime mappings
-fn default_runtimes() -> HashMap<String, String> {
+fn default_runtimes() -> HashMap<String, RuntimeConfig> {
     let mut runtimes = HashMap::new();
-    runtimes.insert("bash".to_string(), "bash".to_string());
-    runtimes.insert("sh".to_string(), "sh".to_string());
-    runtimes.insert("python".to_string(), "python3".to_string());
-    runtimes.insert("ruby".to_string(), "ruby".to_string());
-    runtimes.insert("node".to_string(), "node".to_string());
-    runtimes.insert("javascript".to_string(), "node".to_string());
-    runtimes.insert("js".to_string(), "node".to_string());
-    runtimes.insert("go".to_string(), "go run".to_string());
-    runtimes.insert("golang".to_string(), "go run".to_string());
-    runtimes.insert("php".to_string(), "php".to_string());
-    runtimes.insert("perl".to_string(), "perl".to_string());
-    runtimes.insert("jq".to_string(), "jq".to_string());
-    runtimes.insert("mq".to_string(), "mq".to_string());
+
+    // Languages with stdin execution mode (default)
+    runtimes.insert("bash".to_string(), RuntimeConfig::Simple("bash".to_string()));
+    runtimes.insert("sh".to_string(), RuntimeConfig::Simple("sh".to_string()));
+    runtimes.insert("python".to_string(), RuntimeConfig::Simple("python3".to_string()));
+    runtimes.insert("ruby".to_string(), RuntimeConfig::Simple("ruby".to_string()));
+    runtimes.insert("node".to_string(), RuntimeConfig::Simple("node".to_string()));
+    runtimes.insert("javascript".to_string(), RuntimeConfig::Simple("node".to_string()));
+    runtimes.insert("js".to_string(), RuntimeConfig::Simple("node".to_string()));
+    runtimes.insert("php".to_string(), RuntimeConfig::Simple("php".to_string()));
+    runtimes.insert("perl".to_string(), RuntimeConfig::Simple("perl".to_string()));
+    runtimes.insert("jq".to_string(), RuntimeConfig::Simple("jq".to_string()));
+
+    // Go requires file-based execution
+    runtimes.insert("go".to_string(), RuntimeConfig::Detailed {
+        command: "go run".to_string(),
+        execution_mode: ExecutionMode::File,
+    });
+    runtimes.insert("golang".to_string(), RuntimeConfig::Detailed {
+        command: "go run".to_string(),
+        execution_mode: ExecutionMode::File,
+    });
+
+    // mq requires argument-based execution
+    runtimes.insert("mq".to_string(), RuntimeConfig::Detailed {
+        command: "mq".to_string(),
+        execution_mode: ExecutionMode::Arg,
+    });
+
     runtimes
 }
 
@@ -103,5 +178,95 @@ mod tests {
         assert_eq!(config.get_runtime("bash"), Some("bash"));
         assert_eq!(config.get_runtime("python"), Some("python3"));
         assert_eq!(config.get_runtime("unknown"), None);
+    }
+
+    #[test]
+    fn test_execution_modes() {
+        let config = Config::default();
+        // Test default execution mode (stdin)
+        assert_eq!(config.get_execution_mode("bash"), ExecutionMode::Stdin);
+        assert_eq!(config.get_execution_mode("python"), ExecutionMode::Stdin);
+
+        // Test file-based execution mode
+        assert_eq!(config.get_execution_mode("go"), ExecutionMode::File);
+        assert_eq!(config.get_execution_mode("golang"), ExecutionMode::File);
+
+        // Test arg-based execution mode
+        assert_eq!(config.get_execution_mode("mq"), ExecutionMode::Arg);
+    }
+
+    #[test]
+    fn test_runtime_config_simple() {
+        let config = RuntimeConfig::Simple("python3".to_string());
+        assert_eq!(config.command(), "python3");
+        assert_eq!(config.execution_mode(), ExecutionMode::Stdin);
+    }
+
+    #[test]
+    fn test_runtime_config_detailed() {
+        let config = RuntimeConfig::Detailed {
+            command: "go run".to_string(),
+            execution_mode: ExecutionMode::File,
+        };
+        assert_eq!(config.command(), "go run");
+        assert_eq!(config.execution_mode(), ExecutionMode::File);
+    }
+
+    #[test]
+    fn test_toml_deserialization_simple() {
+        let toml = r#"
+heading_level = 2
+
+[runtimes]
+python = "python3"
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.get_runtime("python"), Some("python3"));
+        assert_eq!(config.get_execution_mode("python"), ExecutionMode::Stdin);
+    }
+
+    #[test]
+    fn test_toml_deserialization_detailed() {
+        let toml = r#"
+heading_level = 2
+
+[runtimes.go]
+command = "go run"
+execution_mode = "file"
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.get_runtime("go"), Some("go run"));
+        assert_eq!(config.get_execution_mode("go"), ExecutionMode::File);
+    }
+
+    #[test]
+    fn test_toml_deserialization_mixed() {
+        let toml = r#"
+heading_level = 2
+
+[runtimes]
+python = "python3"
+
+[runtimes.go]
+command = "go run"
+execution_mode = "file"
+
+[runtimes.mq]
+command = "mq"
+execution_mode = "arg"
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+
+        // Simple config
+        assert_eq!(config.get_runtime("python"), Some("python3"));
+        assert_eq!(config.get_execution_mode("python"), ExecutionMode::Stdin);
+
+        // Detailed config with file mode
+        assert_eq!(config.get_runtime("go"), Some("go run"));
+        assert_eq!(config.get_execution_mode("go"), ExecutionMode::File);
+
+        // Detailed config with arg mode
+        assert_eq!(config.get_runtime("mq"), Some("mq"));
+        assert_eq!(config.get_execution_mode("mq"), ExecutionMode::Arg);
     }
 }
