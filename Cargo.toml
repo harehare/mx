@@ -1,7 +1,7 @@
 [package]
 edition = "2024"
 name = "mx"
-version = "0.1.0"
+version = "0.1.1"
 
 [[bin]]
 name = "mx"
