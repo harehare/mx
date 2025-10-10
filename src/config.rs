@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fs;
 use std::path::Path;
 
@@ -22,6 +23,22 @@ pub enum ExecutionMode {
 impl Default for ExecutionMode {
     fn default() -> Self {
         Self::Stdin
+    }
+}
+
+impl TryFrom<&str> for ExecutionMode {
+    type Error = Error;
+
+    fn try_from(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "stdin" => Ok(ExecutionMode::Stdin),
+            "file" => Ok(ExecutionMode::File),
+            "arg" => Ok(ExecutionMode::Arg),
+            _ => Err(Error::Config(format!(
+                "Invalid execution mode: '{}'. Valid options: stdin, file, arg",
+                s
+            ))),
+        }
     }
 }
 
@@ -102,6 +119,41 @@ impl Config {
     /// Check if runtime exists for a language
     pub fn has_runtime(&self, lang: &str) -> bool {
         self.runtimes.contains_key(lang)
+    }
+
+    /// Apply runtime overrides from CLI arguments
+    /// Format: ["lang:command", "lang2:command2"]
+    /// execution_mode: optional execution mode to apply to all overrides
+    pub fn apply_runtime_overrides(
+        &mut self,
+        overrides: &[String],
+        execution_mode: Option<ExecutionMode>,
+    ) -> Result<()> {
+        for override_str in overrides {
+            let parts: Vec<&str> = override_str.splitn(2, ':').collect();
+            if parts.len() != 2 {
+                return Err(Error::Config(format!(
+                    "Invalid runtime override format: '{}'. Expected format: 'lang:command'",
+                    override_str
+                )));
+            }
+
+            let lang = parts[0].to_string();
+            let command = parts[1].to_string();
+
+            let runtime_config = if let Some(ref mode) = execution_mode {
+                RuntimeConfig::Detailed {
+                    command,
+                    execution_mode: mode.clone(),
+                }
+            } else {
+                RuntimeConfig::Simple(command)
+            };
+
+            self.runtimes.insert(lang, runtime_config);
+        }
+
+        Ok(())
     }
 
     /// Validate that all configured runtimes are available in PATH

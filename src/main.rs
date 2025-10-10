@@ -5,7 +5,7 @@ use colored::*;
 use miette::{IntoDiagnostic, Result};
 use std::path::PathBuf;
 
-use mx::{Config, Runner};
+use mx::{Config, ExecutionMode, Runner};
 
 const DEFAULT_TASKS_FILE: &str = "README.md";
 
@@ -30,6 +30,14 @@ struct Cli {
     #[arg(short, long)]
     level: Option<u8>,
 
+    /// Override runtime for a language (format: lang:command, e.g., python:python3.11)
+    #[arg(short, long, value_name = "LANG:COMMAND")]
+    runtime: Vec<String>,
+
+    /// Set execution mode for runtime overrides (stdin, file, arg)
+    #[arg(short, long, value_name = "MODE")]
+    execution_mode: Option<String>,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -52,6 +60,14 @@ enum Commands {
         /// Heading level for sections (1-6)
         #[arg(short, long)]
         level: Option<u8>,
+
+        /// Override runtime for a language (format: lang:command, e.g., python:python3.11)
+        #[arg(short, long, value_name = "LANG:COMMAND")]
+        runtime: Vec<String>,
+
+        /// Set execution mode for runtime overrides (stdin, file, arg)
+        #[arg(short, long, value_name = "MODE")]
+        execution_mode: Option<String>,
     },
 
     /// List all available tasks in a markdown file
@@ -86,7 +102,9 @@ fn main() -> Result<()> {
             task,
             config,
             level,
-        }) => run_task(file, task, config, level)?,
+            runtime,
+            execution_mode,
+        }) => run_task(file, task, config, level, runtime, execution_mode)?,
         Some(Commands::List {
             file,
             config,
@@ -96,7 +114,7 @@ fn main() -> Result<()> {
         None => {
             // If no subcommand, check if task is provided
             if let Some(task) = cli.task {
-                run_task(cli.file, task, cli.config, cli.level)?;
+                run_task(cli.file, task, cli.config, cli.level, cli.runtime, cli.execution_mode)?;
             } else {
                 // No task provided, list available tasks
                 list_tasks(cli.file, cli.config, cli.level)?;
@@ -113,12 +131,28 @@ fn run_task(
     task_name: String,
     config_path: Option<PathBuf>,
     level: Option<u8>,
+    runtime_overrides: Vec<String>,
+    execution_mode: Option<String>,
 ) -> Result<()> {
     let mut config = load_config(config_path)?;
 
     // Override heading level if specified
     if let Some(level) = level {
         config.heading_level = level;
+    }
+
+    // Parse execution mode if specified
+    let exec_mode = if let Some(mode_str) = execution_mode {
+        Some(ExecutionMode::try_from(mode_str.as_str()).into_diagnostic()?)
+    } else {
+        None
+    };
+
+    // Apply runtime overrides
+    if !runtime_overrides.is_empty() {
+        config
+            .apply_runtime_overrides(&runtime_overrides, exec_mode)
+            .into_diagnostic()?;
     }
 
     let mut runner = Runner::new(config);

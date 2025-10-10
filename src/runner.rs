@@ -269,9 +269,15 @@ impl Runner {
 
         // Create temporary directory
         let temp_dir = env::temp_dir();
+
+        // Use language name as file extension, or map known languages
         let file_ext = match lang {
             "go" | "golang" => "go",
-            _ => return Err(Error::Execution(format!("Unsupported language: {}", lang))),
+            "python" => "py",
+            "ruby" => "rb",
+            "javascript" | "js" => "js",
+            "typescript" | "ts" => "ts",
+            _ => lang, // Use language name as extension for custom languages
         };
 
         // Generate unique file name
