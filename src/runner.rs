@@ -165,18 +165,26 @@ impl Runner {
     }
 
     pub fn execute_section(&self, section: &Section) -> Result<()> {
+        self.execute_section_with_args(section, &[])
+    }
+
+    pub fn execute_section_with_args(&self, section: &Section, args: &[String]) -> Result<()> {
         for code_block in &section.codes {
             if code_block.lang.is_empty() {
                 continue;
             }
 
-            self.execute_code(&code_block.lang, &code_block.code)?;
+            self.execute_code_with_args(&code_block.lang, &code_block.code, args)?;
         }
 
         Ok(())
     }
 
     pub fn execute_code(&self, lang: &str, code: &str) -> Result<()> {
+        self.execute_code_with_args(lang, code, &[])
+    }
+
+    pub fn execute_code_with_args(&self, lang: &str, code: &str, args: &[String]) -> Result<()> {
         let runtime = self
             .config
             .get_runtime(lang)
@@ -191,13 +199,13 @@ impl Runner {
         let execution_mode = self.config.get_execution_mode(lang);
 
         match execution_mode {
-            ExecutionMode::File => self.execute_code_with_file(lang, code, &parts),
-            ExecutionMode::Arg => self.execute_code_with_args(code, &parts),
-            ExecutionMode::Stdin => self.execute_code_with_stdin(code, &parts),
+            ExecutionMode::File => self.execute_code_with_file_and_args(lang, code, &parts, args),
+            ExecutionMode::Arg => self.execute_code_with_arg_mode(code, &parts, args),
+            ExecutionMode::Stdin => self.execute_code_with_stdin_and_args(code, &parts, args),
         }
     }
 
-    fn execute_code_with_stdin(&self, code: &str, parts: &[&str]) -> Result<()> {
+    fn execute_code_with_stdin_and_args(&self, code: &str, parts: &[&str], task_args: &[String]) -> Result<()> {
         let cmd = parts[0];
         let args = &parts[1..];
 
@@ -207,6 +215,7 @@ impl Runner {
             .stdin(Stdio::piped())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
+            .envs(Self::prepare_env_vars(task_args))
             .spawn()
             .map_err(|e| Error::Execution(format!("Failed to spawn process: {}", e)))?;
 
@@ -230,7 +239,7 @@ impl Runner {
         Ok(())
     }
 
-    fn execute_code_with_args(&self, code: &str, parts: &[&str]) -> Result<()> {
+    fn execute_code_with_arg_mode(&self, code: &str, parts: &[&str], task_args: &[String]) -> Result<()> {
         let cmd = parts[0];
         // Append code as an argument to the command
         let mut args: Vec<&str> = parts[1..].to_vec();
@@ -241,6 +250,7 @@ impl Runner {
             .args(args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
+            .envs(Self::prepare_env_vars(task_args))
             .spawn()
             .map_err(|e| Error::Execution(format!("Failed to spawn process: {}", e)))?;
 
@@ -264,7 +274,7 @@ impl Runner {
         Ok(())
     }
 
-    fn execute_code_with_file(&self, lang: &str, code: &str, parts: &[&str]) -> Result<()> {
+    fn execute_code_with_file_and_args(&self, lang: &str, code: &str, parts: &[&str], task_args: &[String]) -> Result<()> {
         use std::env;
 
         // Create temporary directory
@@ -298,6 +308,7 @@ impl Runner {
             .arg(&temp_file)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
+            .envs(Self::prepare_env_vars(task_args))
             .status()
             .map_err(|e| Error::Execution(format!("Failed to execute {}: {}", lang, e)))?;
 
@@ -311,8 +322,30 @@ impl Runner {
         }
     }
 
+    /// Prepare environment variables from task arguments
+    fn prepare_env_vars(args: &[String]) -> Vec<(String, String)> {
+        let mut env_vars = Vec::new();
+
+        // Set MX_ARGS with all arguments joined by space
+        if !args.is_empty() {
+            env_vars.push(("MX_ARGS".to_string(), args.join(" ")));
+        }
+
+        // Set individual arguments as MX_ARG_0, MX_ARG_1, etc.
+        for (i, arg) in args.iter().enumerate() {
+            env_vars.push((format!("MX_ARG_{}", i), arg.clone()));
+        }
+
+        env_vars
+    }
+
     /// Run a specific task by section title
     pub fn run_task<P: AsRef<Path>>(&mut self, markdown_path: P, task_name: &str) -> Result<()> {
+        self.run_task_with_args(markdown_path, task_name, &[])
+    }
+
+    /// Run a specific task with arguments
+    pub fn run_task_with_args<P: AsRef<Path>>(&mut self, markdown_path: P, task_name: &str, args: &[String]) -> Result<()> {
         let markdown = self.load_markdown(markdown_path)?;
         let sections = self.extract_sections(&markdown)?;
 
@@ -320,7 +353,7 @@ impl Runner {
             .find_section(&sections, task_name)
             .ok_or_else(|| Error::SectionNotFound(task_name.to_string()))?;
 
-        self.execute_section(section)
+        self.execute_section_with_args(section, args)
     }
 
     /// List all available tasks (sections) in a Markdown file

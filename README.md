@@ -58,6 +58,37 @@ mx run "Task Name"
 mx run --file tasks.md "Task Name"
 ```
 
+### Pass arguments to a task
+
+You can pass arguments to your task using `--` separator:
+
+```bash
+# Pass arguments to a task
+mx "Task Name" -- arg1 arg2 arg3
+
+# With explicit run command
+mx run "Task Name" -- arg1 arg2 arg3
+
+# From a specific file
+mx -f tasks.md "Task Name" -- arg1 arg2
+```
+
+Arguments are accessible via environment variables:
+- `MX_ARGS`: All arguments joined by space (e.g., "arg1 arg2 arg3")
+- `MX_ARG_0`, `MX_ARG_1`, ...: Individual arguments
+
+Example in a Markdown task:
+
+````markdown
+## My Task
+
+```bash
+echo "All args: $MX_ARGS"
+echo "First arg: $MX_ARG_0"
+echo "Second arg: $MX_ARG_1"
+```
+````
+
 ### List available tasks
 
 ```bash
