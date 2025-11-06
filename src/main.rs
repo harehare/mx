@@ -38,6 +38,10 @@ struct Cli {
     #[arg(short, long, value_name = "MODE")]
     execution_mode: Option<String>,
 
+    /// Arguments to pass to the task (use -- to separate: mx task -- arg1 arg2)
+    #[arg(last = true)]
+    args: Vec<String>,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -68,6 +72,10 @@ enum Commands {
         /// Set execution mode for runtime overrides (stdin, file, arg)
         #[arg(short, long, value_name = "MODE")]
         execution_mode: Option<String>,
+
+        /// Arguments to pass to the task (use -- to separate: mx run task -- arg1 arg2)
+        #[arg(last = true)]
+        args: Vec<String>,
     },
 
     /// List all available tasks in a markdown file
@@ -104,7 +112,8 @@ fn main() -> Result<()> {
             level,
             runtime,
             execution_mode,
-        }) => run_task(file, task, config, level, runtime, execution_mode)?,
+            args,
+        }) => run_task(file, task, config, level, runtime, execution_mode, args)?,
         Some(Commands::List {
             file,
             config,
@@ -114,7 +123,7 @@ fn main() -> Result<()> {
         None => {
             // If no subcommand, check if task is provided
             if let Some(task) = cli.task {
-                run_task(cli.file, task, cli.config, cli.level, cli.runtime, cli.execution_mode)?;
+                run_task(cli.file, task, cli.config, cli.level, cli.runtime, cli.execution_mode, cli.args)?;
             } else {
                 // No task provided, list available tasks
                 list_tasks(cli.file, cli.config, cli.level)?;
@@ -133,6 +142,7 @@ fn run_task(
     level: Option<u8>,
     runtime_overrides: Vec<String>,
     execution_mode: Option<String>,
+    args: Vec<String>,
 ) -> Result<()> {
     let mut config = load_config(config_path)?;
 
@@ -161,7 +171,7 @@ fn run_task(
     println!();
 
     runner
-        .run_task(&markdown_path, &task_name)
+        .run_task_with_args(&markdown_path, &task_name, &args)
         .into_diagnostic()?;
 
     Ok(())
