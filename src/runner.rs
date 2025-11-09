@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use mq_lang::{parse_markdown_input, Engine, Ident, RuntimeValue};
+use mq_lang::{Engine, Ident, RuntimeValue, parse_markdown_input};
 use serde::{Deserialize, Serialize};
 
 use crate::config::{Config, ExecutionMode};
@@ -45,7 +45,7 @@ pub struct Runner {
 impl Runner {
     /// Create a new Runner with the given configuration
     pub fn new(config: Config) -> Self {
-        let mut engine = Engine::default();
+        let mut engine: Engine = Engine::default();
         engine.load_builtin_module();
 
         Self { config, engine }
@@ -205,7 +205,12 @@ impl Runner {
         }
     }
 
-    fn execute_code_with_stdin_and_args(&self, code: &str, parts: &[&str], task_args: &[String]) -> Result<()> {
+    fn execute_code_with_stdin_and_args(
+        &self,
+        code: &str,
+        parts: &[&str],
+        task_args: &[String],
+    ) -> Result<()> {
         let cmd = parts[0];
         let args = &parts[1..];
 
@@ -239,7 +244,12 @@ impl Runner {
         Ok(())
     }
 
-    fn execute_code_with_arg_mode(&self, code: &str, parts: &[&str], task_args: &[String]) -> Result<()> {
+    fn execute_code_with_arg_mode(
+        &self,
+        code: &str,
+        parts: &[&str],
+        task_args: &[String],
+    ) -> Result<()> {
         let cmd = parts[0];
         // Append code as an argument to the command
         let mut args: Vec<&str> = parts[1..].to_vec();
@@ -274,7 +284,13 @@ impl Runner {
         Ok(())
     }
 
-    fn execute_code_with_file_and_args(&self, lang: &str, code: &str, parts: &[&str], task_args: &[String]) -> Result<()> {
+    fn execute_code_with_file_and_args(
+        &self,
+        lang: &str,
+        code: &str,
+        parts: &[&str],
+        task_args: &[String],
+    ) -> Result<()> {
         use std::env;
 
         // Create temporary directory
@@ -345,7 +361,12 @@ impl Runner {
     }
 
     /// Run a specific task with arguments
-    pub fn run_task_with_args<P: AsRef<Path>>(&mut self, markdown_path: P, task_name: &str, args: &[String]) -> Result<()> {
+    pub fn run_task_with_args<P: AsRef<Path>>(
+        &mut self,
+        markdown_path: P,
+        task_name: &str,
+        args: &[String],
+    ) -> Result<()> {
         let markdown = self.load_markdown(markdown_path)?;
         let sections = self.extract_sections(&markdown)?;
 
