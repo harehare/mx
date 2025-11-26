@@ -5,7 +5,7 @@ set -e
 # mx installation script
 
 readonly MX_REPO="harehare/mx"
-readonly MX_INSTALL_DIR="$HOME/.mx"
+readonly MX_INSTALL_DIR="$HOME/.mq"
 readonly MX_BIN_DIR="$MX_INSTALL_DIR/bin"
 
 
@@ -235,6 +235,15 @@ install_mx() {
     mv "$temp_file" "$MX_BIN_DIR/$binary_name"
     chmod +x "$MX_BIN_DIR/$binary_name"
 
+    # Create mq-task symlink to mx
+    local symlink_name="mq-task"
+    if [[ "$os" == "windows" ]]; then
+        symlink_name="mq-task.exe"
+    fi
+
+    ln -sf "$MX_BIN_DIR/$binary_name" "$MX_BIN_DIR/$symlink_name"
+    log "Created symlink: $MX_BIN_DIR/$symlink_name -> $MX_BIN_DIR/$binary_name"
+
     log "mx installed successfully to $MX_BIN_DIR/$binary_name"
 }
 
@@ -292,11 +301,19 @@ verify_installation() {
     # Check mx installation
     if [[ -x "$MX_BIN_DIR/mx" ]] || [[ -x "$MX_BIN_DIR/mx.exe" ]]; then
         log "✓ mx installation verified"
-        log "Installation verification successful!"
-        return 0
     else
         error "mx installation verification failed"
     fi
+
+    # Check mq-task symlink
+    if [[ -L "$MX_BIN_DIR/mq-task" ]] || [[ -L "$MX_BIN_DIR/mq-task.exe" ]]; then
+        log "✓ mq-task symlink verified"
+    else
+        error "mq-task symlink verification failed"
+    fi
+
+    log "Installation verification successful!"
+    return 0
 }
 
 # Show post-installation instructions
